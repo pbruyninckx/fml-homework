@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 
 ### Assignment Owner: Tian Wang
 
