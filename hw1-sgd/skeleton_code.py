@@ -24,7 +24,16 @@ def feature_normalization(train, test):
         test_normalized  - test set after normalization
 
     """
-    # TODO
+    train_min = train.min(axis=0)
+    train_max = train.max(axis=0)
+    discard = train_min == train_max
+    train_min = np.delete(train_min, discard)
+    train_max = np.delete(train_max, discard)
+    train_normalized = np.delete(train, discard, axis=1)
+    train_normalized = (train_normalized-train_min)/(train_max-train_min)
+    test_normalized = np.delete(test, discard, axis=1)
+    test_normalized = (test_normalized-train_min)/(train_max - train_min)
+    return train_normalized, test_normalized
 
 
 ########################################
