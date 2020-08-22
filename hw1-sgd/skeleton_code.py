@@ -5,10 +5,10 @@ import sys
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
-### Assignment Owner: Tian Wang
+# Assignment Owner: Tian Wang
 
 #######################################
-#### Normalization
+# Normalization
 
 
 def feature_normalization(train, test):
@@ -37,7 +37,7 @@ def feature_normalization(train, test):
 
 
 ########################################
-#### The square loss function
+# The square loss function
 
 def compute_square_loss(X, y, theta):
     """
@@ -51,14 +51,15 @@ def compute_square_loss(X, y, theta):
     Returns:
         loss - the square loss, scalar
     """
-    loss = 0 #initialize the square_loss
-    #TODO
-
+    m = X.shape[0]
+    distance_vector = np.matmul(X, theta) - y
+    loss = 1/m * np.matmul(distance_vector.transpose(), distance_vector)
+    return loss
 
 
 ########################################
-### compute the gradient of square loss function
-def compute_square_loss_gradient(X, y, theta):
+# compute the gradient of square loss function
+def compute_square_loss_gradient(X: np.ndarray, y: np.ndarray, theta: np.ndarray):
     """
     Compute gradient of the square loss (as defined in compute_square_loss), at the point theta.
 
@@ -70,18 +71,19 @@ def compute_square_loss_gradient(X, y, theta):
     Returns:
         grad - gradient vector, 1D numpy array of size (num_features)
     """
-    #TODO
-
+    m = X.shape[0]
+    grad = 2/m * np.matmul(X.transpose(), (np.matmul(X, theta) - y))
+    return grad
 
 
 ###########################################
-### Gradient Checker
-#Getting the gradient calculation correct is often the trickiest part
-#of any gradient-based optimization algorithm.  Fortunately, it's very
-#easy to check that the gradient calculation is correct using the
-#definition of gradient.
-#See http://ufldl.stanford.edu/wiki/index.php/Gradient_checking_and_advanced_optimization
-def grad_checker(X, y, theta, epsilon=0.01, tolerance=1e-4):
+# Gradient Checker
+# Getting the gradient calculation correct is often the trickiest part
+# of any gradient-based optimization algorithm.  Fortunately, it's very
+# easy to check that the gradient calculation is correct using the
+# definition of gradient.
+# See http://ufldl.stanford.edu/wiki/index.php/Gradient_checking_and_advanced_optimization
+def grad_checker(X: np.ndarray, y: np.ndarray, theta: np.ndarray, epsilon=0.01, tolerance=1e-4):
     """Implement Gradient Checker
     Check that the function compute_square_loss_gradient returns the
     correct gradient for the given X, y, and theta.
@@ -111,25 +113,42 @@ def grad_checker(X, y, theta, epsilon=0.01, tolerance=1e-4):
         A boolean value indicate whether the gradient is correct or not
 
     """
-    true_gradient = compute_square_loss_gradient(X, y, theta) #the true gradient
+    true_gradient = compute_square_loss_gradient(X, y, theta)  # the true gradient
     num_features = theta.shape[0]
-    approx_grad = np.zeros(num_features) #Initialize the gradient we approximate
-    #TODO
+    approx_grad = np.zeros(num_features)  # Initialize the gradient we approximate
+    identity = np.identity(num_features)
+    for dim in range(num_features):
+        h = identity[dim]
+        approx_grad[dim] = compute_square_loss(X, y, theta + epsilon * h) \
+            - compute_square_loss(X, y, theta - epsilon * h)
+    approx_grad /= 2 * epsilon
+    distance = np.linalg.norm(true_gradient - approx_grad)
+    return distance < tolerance
+
 
 #################################################
-### Generic Gradient Checker
+# Generic Gradient Checker
 def generic_gradient_checker(X, y, theta, objective_func, gradient_func, epsilon=0.01, tolerance=1e-4):
     """
     The functions takes objective_func and gradient_func as parameters. And check whether gradient_func(X, y, theta) returned
     the true gradient for objective_func(X, y, theta).
     Eg: In LSR, the objective_func = compute_square_loss, and gradient_func = compute_square_loss_gradient
     """
-    #TODO
+    true_gradient = gradient_func(X, y, theta)  # the true gradient
+    num_features = theta.shape[0]
+    approx_grad = np.zeros(num_features)  # Initialize the gradient we approximate
+    identity = np.identity(num_features)
+    for dim in range(num_features):
+        h = identity[dim]
+        approx_grad[dim] = objective_func(theta + epsilon * h) - objective_func(theta - epsilon * h)
+    approx_grad /= 2 * epsilon
+    distance = np.linalg.norm(true_gradient - approx_grad)
+    return distance < tolerance
 
 
 ####################################
-#### Batch Gradient Descent
-def batch_grad_descent(X, y, alpha=0.1, num_iter=1000, check_gradient=False):
+# Batch Gradient Descent
+def batch_grad_descent(X: np.ndarray, y: np.ndarray, alpha=0.1, num_iter=1000, check_gradient=False):
     """
     In this question you will implement batch gradient descent to
     minimize the square loss objective
@@ -143,14 +162,21 @@ def batch_grad_descent(X, y, alpha=0.1, num_iter=1000, check_gradient=False):
 
     Returns:
         theta_hist - store the the history of parameter vector in iteration, 2D numpy array of size (num_iter+1, num_features)
-                    for instance, theta in iteration 0 should be theta_hist[0], theta in ieration (num_iter) is theta_hist[-1]
+                    for instance, theta in iteration 0 should be theta_hist[0], theta in iteration (num_iter) is theta_hist[-1]
         loss_hist - the history of objective function vector, 1D numpy array of size (num_iter+1)
     """
     num_instances, num_features = X.shape[0], X.shape[1]
-    theta_hist = np.zeros((num_iter+1, num_features))  #Initialize theta_hist
-    loss_hist = np.zeros(num_iter+1) #initialize loss_hist
-    theta = np.zeroes(num_features) #initialize theta
-    #TODO
+    theta_hist = np.zeros((num_iter+1, num_features))  # Initialize theta_hist
+    loss_hist = np.zeros(num_iter+1)  # initialize loss_hist
+    theta = np.zeros(num_features)  # initialize theta
+    for cur_iter in range(num_iter+1):
+        loss_hist[cur_iter] = compute_square_loss(X, y, theta)
+        theta_hist[cur_iter] = theta
+        if check_gradient and not grad_checker(X, y, theta):
+            print("Error in gradient at iteration {}".format(cur_iter), file=sys.stderr)
+        theta -= alpha * compute_square_loss_gradient(X, y, theta)
+    return theta_hist, loss_hist
+
 
 ####################################
 ###Q2.4b: Implement backtracking line search in batch_gradient_descent
@@ -253,7 +279,15 @@ def main():
     X_train = np.hstack((X_train, np.ones((X_train.shape[0], 1))))  # Add bias term
     X_test = np.hstack((X_test, np.ones((X_test.shape[0], 1)))) # Add bias term
 
-    # TODO
+    for step_size in [.5, .1, .05, .01]:
+        theta_hist, loss_hist = batch_grad_descent(X_train, y_train, step_size)
+        plt.plot(loss_hist, label="step size {}".format(step_size))
+    # Rescale y-axis
+    cur_axis = list(plt.axis())
+    cur_axis[2:4] = [0, 10]
+    plt.axis(cur_axis)
+    plt.legend()
+
 
 if __name__ == "__main__":
     main()
