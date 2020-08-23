@@ -179,9 +179,28 @@ def batch_grad_descent(X: np.ndarray, y: np.ndarray, alpha=0.1, num_iter=1000, c
 
 
 ####################################
-###Q2.4b: Implement backtracking line search in batch_gradient_descent
-###Check http://en.wikipedia.org/wiki/Backtracking_line_search for details
-#TODO
+# Q2.4b: Implement backtracking line search in batch_gradient_descent
+# Check http://en.wikipedia.org/wiki/Backtracking_line_search for details
+def batch_grad_descent_with_btl(X: np.ndarray, y: np.ndarray, alpha0=1, num_iter=1000, c=0.5, tau=0.5):
+    num_features = X.shape[1]
+    theta = np.zeros(num_features)
+    loss_hist = np.zeros(num_iter+1)
+    loss_hist[0] = compute_square_loss(X, y, theta)
+    for cur_iter in range(1, num_iter+1):
+        gradient = compute_square_loss_gradient(X, y, theta)
+        p = - gradient / np.linalg.norm(gradient)
+        m = np.dot(gradient, p)
+        assert (m < 0)
+        t = -c * m
+        alpha = alpha0
+        while True:
+            loss_hist[cur_iter] = compute_square_loss(X, y, theta + alpha*p)
+            improvement = loss_hist[cur_iter-1] - loss_hist[cur_iter]
+            if improvement >= alpha * t:
+                theta += alpha*p
+                break
+            alpha *= tau
+    return loss_hist
 
 
 
@@ -282,11 +301,15 @@ def main():
     for step_size in [.5, .1, .05, .01]:
         theta_hist, loss_hist = batch_grad_descent(X_train, y_train, step_size)
         plt.plot(loss_hist, label="step size {}".format(step_size))
+    loss_hist = batch_grad_descent_with_btl(X_train, y_train, .1)
+    plt.plot(loss_hist, label="backtracking line search")
     # Rescale y-axis
     cur_axis = list(plt.axis())
     cur_axis[2:4] = [0, 10]
     plt.axis(cur_axis)
     plt.legend()
+    plt.xlabel("iteration")
+    plt.ylabel("loss")
 
 
 if __name__ == "__main__":
