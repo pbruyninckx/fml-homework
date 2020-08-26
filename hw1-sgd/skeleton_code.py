@@ -298,10 +298,14 @@ def main():
     X_train = np.hstack((X_train, np.ones((X_train.shape[0], 1))))  # Add bias term
     X_test = np.hstack((X_test, np.ones((X_test.shape[0], 1)))) # Add bias term
 
+    plot_step_size_effect(X_train, y_train)
+
+
+def plot_step_size_effect(X, y):
     for step_size in [.5, .1, .05, .01]:
-        theta_hist, loss_hist = batch_grad_descent(X_train, y_train, step_size)
+        theta_hist, loss_hist = batch_grad_descent(X, y, step_size)
         plt.plot(loss_hist, label="step size {}".format(step_size))
-    loss_hist = batch_grad_descent_with_btl(X_train, y_train, .1)
+    loss_hist = batch_grad_descent_with_btl(X, y, .1)
     plt.plot(loss_hist, label="backtracking line search")
     # Rescale y-axis
     cur_axis = list(plt.axis())
