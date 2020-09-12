@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 import numpy as np
 import sys
+from typing import List, Union
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
@@ -259,34 +260,56 @@ def regularized_grad_descent(X: np.ndarray, y: np.ndarray, alpha=0.1, lambda_reg
 ##Y-axis: square_loss
 
 #############################################
-### Stochastic Gradient Descent
-def stochastic_grad_descent(X, y, alpha=0.1, lambda_reg=1, num_iter=1000):
+# Stochastic Gradient Descent
+def stochastic_grad_descent(X: np.ndarray, y: np.ndarray, alpha: Union[float, str] = 0.1, lambda_reg: float = 1,
+                            num_iter: int = 1000) -> (np.ndarray, np.ndarray):
     """
     In this question you will implement stochastic gradient descent with a regularization term
 
     Args:
-        X - the feature vector, 2D numpy array of size (num_instances, num_features)
-        y - the label vector, 1D numpy array of size (num_instances)
-        alpha - string or float. step size in gradient descent
+        X: the feature vector, 2D numpy array of size (num_instances, num_features)
+        y: the label vector, 1D numpy array of size (num_instances)
+        alpha:  string or float. step size in gradient descent
                 NOTE: In SGD, it's not always a good idea to use a fixed step size. Usually it's set to 1/sqrt(t) or 1/t
                 if alpha is a float, then the step size in every iteration is alpha.
                 if alpha == "1/sqrt(t)", alpha = 1/sqrt(t)
                 if alpha == "1/t", alpha = 1/t
-        lambda_reg - the regularization coefficient
-        num_iter - number of epochs (i.e number of times) to go through the whole training set
+        lambda_reg: the regularization coefficient
+        num_iter: number of epochs (i.e number of times) to go through the whole training set
 
     Returns:
         theta_hist - the history of parameter vector, 3D numpy array of size (num_iter, num_instances, num_features)
-        loss hist - the history of regularized loss function vector, 2D numpy array of size(num_iter, num_instances)
+        loss_hist - the history of regularized loss function vector, 2D numpy array of size(num_iter, num_instances)
     """
     num_instances, num_features = X.shape[0], X.shape[1]
-    theta = np.ones(num_features) #Initialize theta
+    theta = np.ones(num_features)  # Initialize theta
 
+    theta_hist = np.zeros((num_iter, num_instances, num_features))  # Initialize theta_hist
+    loss_hist = np.zeros((num_iter, num_instances))  # Initialize loss_hist
 
-    theta_hist = np.zeros((num_iter, num_instances, num_features))  #Initialize theta_hist
-    loss_hist = np.zeros((num_iter, num_instances)) #Initialize loss_hist
-    #TODO
+    def J(cur_theta: np.ndarray):
+        return compute_square_loss(X, y, cur_theta) + lambda_reg * np.dot(cur_theta, cur_theta)
 
+    if alpha == "1/sqrt(t)":
+        def eta(t):
+            return min(0.02, 1.0 / np.sqrt(t+10))
+    elif alpha == "1/t":
+        def eta(t):
+            return min(0.02, 1.0 / (t + 10))
+    else:
+        def eta(_):
+            return alpha
+        assert isinstance(alpha, float)
+
+    for cur_iter in range(num_iter):
+        # Assuming the instances are in random order
+        for cur_instance in range(num_instances):
+            theta -= eta(cur_iter) * 2 * (X[cur_instance] * (np.dot(theta, X[cur_instance]) - y[cur_instance])
+                                          + lambda_reg * theta)
+            theta_hist[cur_iter, cur_instance] = theta
+            loss_hist[cur_iter, cur_instance] = J(theta)
+
+    return theta_hist, loss_hist
 
 
 ################################################
@@ -313,8 +336,9 @@ def main():
 
     # plot_step_size_effect(X_train, y_train)
 
-    ridge_regression_ex(X_train, y_train, X_test, y_test)
+    # ridge_regression_ex(X_train, y_train, X_test, y_test)
 
+    stochastic_gradient_descent_ex(X_train, y_train, X_test, y_test)
 
 def ridge_regression_ex(X_train, y_train, X_test, y_test):
     """
@@ -326,7 +350,7 @@ def ridge_regression_ex(X_train, y_train, X_test, y_test):
     J_test = np.zeros(num_lambda_regs)
 
     for ind, lambda_reg in enumerate(lambda_regs):
-        theta_hist, _ = regularized_grad_descent(X_train, y_train, 0.02, lambda_reg, 10000)
+        theta_hist, _ = regularized_grad_descent(X_train, y_train, 0.02, lambda_reg, 2000)
         theta = theta_hist[-1]
         J_train[ind] = compute_square_loss(X_train, y_train, theta)
         J_test[ind] = compute_square_loss(X_test, y_test, theta)
@@ -336,6 +360,32 @@ def ridge_regression_ex(X_train, y_train, X_test, y_test):
     plt.legend()
     plt.semilogx()
     plt.xlabel("Regularization (λ)")
+    plt.ylabel("Loss")
+
+
+def stochastic_gradient_descent_ex(X_train, y_train, X_test, y_test):
+    """
+    Do some experiments with the stochastic gradient descent.
+    """
+    lambda_reg = 0.025
+    etas = [0.025, 0.01, 0.005, "1/t", "1/sqrt(t)"]
+    num_etas = len(etas)
+    J_train = np.zeros(num_etas)
+    J_test = np.zeros(num_etas)
+
+    for ind, eta in enumerate(etas):
+        theta_hist, loss_hist = stochastic_grad_descent(X_train, y_train, eta, lambda_reg, 1000)
+        theta_hist = theta_hist[:, -1, :]
+        plt.figure()
+        plt.plot(loss_hist[:, -1], label=eta)
+        theta = theta_hist[-1]
+        J_train[ind] = compute_square_loss(X_train, y_train, theta)
+        J_test[ind] = compute_square_loss(X_test, y_test, theta)
+    plt.figure()
+    plt.plot(J_train, label="training loss")
+    plt.plot(J_test, label="test loss")
+    plt.legend()
+    plt.xlabel("eta")
     plt.ylabel("Loss")
 
 
