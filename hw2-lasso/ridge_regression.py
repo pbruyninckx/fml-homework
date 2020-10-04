@@ -94,9 +94,9 @@ def do_grid_search_ridge(X_train, y_train, X_val, y_val):
     # in the previous grid. This approach works reasonably well when
     # performance is convex as a function of the hyperparameter, which it seems
     # to be here.
-    param_grid = [{'l2reg':np.unique(np.concatenate((10.**np.arange(-6,1,1),
-                                           np.arange(1,3,.3)
-                                             ))) }]
+    param_grid = [{'l2reg': np.unique(np.concatenate((10. ** np.linspace(-4, 0, 9),
+                                                      np.arange(1, 3, .3)
+                                                      )))}]
 
     ridge_regression_estimator = RidgeRegression()
     grid = GridSearchCV(ridge_regression_estimator,
@@ -148,6 +148,17 @@ def plot_prediction_functions(x, pred_fns, x_train, y_train, legend_loc="best"):
         ax.plot(x, pred_fns[i]["preds"], label=pred_fns[i]["name"])
     legend = ax.legend(loc=legend_loc, shadow=True)
     return fig
+
+
+def coefs_confusion_matrices(coefs_true, coefs_est, zero_thresholds):
+    for threshold in zero_thresholds:
+        print("zero threshold: {}".format(threshold))
+        print("0: {} \t {}\n1: {} \t {}\n".format(
+            sum((coefs_true == 0) & (coefs_est <= threshold)),
+            sum((coefs_true == 0) & (coefs_est > threshold)),
+            sum((coefs_true != 0) & (coefs_est <= threshold)),
+            sum((coefs_true != 0) & (coefs_est > threshold))))
+
 
 def main():
     lasso_data_fname = "lasso_data.pickle"
@@ -205,5 +216,8 @@ def main():
     f = compare_parameter_vectors(pred_fns)
     f.show()
 
+    coefs_confusion_matrices(coefs_true, pred_fns[1]["coefs"],  10.**np.array([-6, -3, -1]))
+
+
 if __name__ == '__main__':
-  main()
+    main()
